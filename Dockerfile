@@ -1,5 +1,5 @@
 # ─── Stage 1: Build ───────────────────────────────────────────────────────────
-FROM node:18-alpine AS builder
+FROM node:18-bullseye-slim AS builder
 
 WORKDIR /app
 
@@ -11,9 +11,10 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
+RUN cp -r src/data dist/data
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM node:18-alpine
+FROM node:18-bullseye-slim
 
 WORKDIR /app
 
