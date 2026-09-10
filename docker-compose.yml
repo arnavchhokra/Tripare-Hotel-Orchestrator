@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # ── Temporal Server (auto-setup = schema init + server in one image) ─────────
+  temporal:
+    image: temporalio/auto-setup:latest
+    container_name: temporal
+    environment:
+      - DB=sqlite
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - '7233:7233'
+    healthcheck:
+      test: ['CMD', 'tctl', '--address', 'temporal:7233', 'cluster', 'health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ── Temporal Web UI ──────────────────────────────────────────────────────────
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - '8080:8080'
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── API Server ───────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hotel-api
+    depends_on:
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - TEMPORAL_ADDRESS=temporal:7233
+      - REDIS_URL=redis://redis:6379
+      - SUPPLIER_A_URL=http://api:3000/supplierA/hotels
+      - SUPPLIER_B_URL=http://api:3000/supplierB/hotels
+    ports:
+      - '3000:3000'
+    restart: on-failure
+
+  # ── Temporal Worker ──────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hotel-worker
+    command: ['node', 'dist/worker.js']
+    depends_on:
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - REDIS_URL=redis://redis:6379
+      - SUPPLIER_A_URL=http://api:3000/supplierA/hotels
+      - SUPPLIER_B_URL=http://api:3000/supplierB/hotels
+    restart: on-failure

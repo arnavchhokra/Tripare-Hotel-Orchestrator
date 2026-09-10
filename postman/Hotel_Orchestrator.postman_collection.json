@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "Hotel Offer Orchestrator",
+    "description": "Postman collection for testing the Tripare Hotel Offer Orchestrator API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Hotels API",
+      "item": [
+        {
+          "name": "Get Hotels — Delhi (Valid City with Overlaps)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels?city=delhi",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"],
+              "query": [{ "key": "city", "value": "delhi" }]
+            },
+            "description": "Returns deduplicated hotels for Delhi. Expect overlapping names (Holtin, Radison) where cheapest supplier wins."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotels — Delhi (Price Filter: 5000–6000)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels?city=delhi&minPrice=5000&maxPrice=6000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"],
+              "query": [
+                { "key": "city", "value": "delhi" },
+                { "key": "minPrice", "value": "5000" },
+                { "key": "maxPrice", "value": "6000" }
+              ]
+            },
+            "description": "Returns only hotels priced between 5000 and 6000. Filtering is done inside Redis using ZRANGEBYSCORE."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotels — Mumbai",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels?city=mumbai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"],
+              "query": [{ "key": "city", "value": "mumbai" }]
+            },
+            "description": "Returns deduplicated hotels for Mumbai."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotels — No Results (Unknown City)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels?city=goa",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"],
+              "query": [{ "key": "city", "value": "goa" }]
+            },
+            "description": "City not present in any supplier data. Should return an empty array []."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotels — Missing City Param (400 Error)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"]
+            },
+            "description": "Omit the required 'city' query param. Should return HTTP 400 with error message."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Mock Suppliers",
+      "item": [
+        {
+          "name": "Supplier A — Delhi Hotels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/supplierA/hotels?city=delhi",
+              "host": ["{{baseUrl}}"],
+              "path": ["supplierA", "hotels"],
+              "query": [{ "key": "city", "value": "delhi" }]
+            },
+            "description": "Directly call the Supplier A mock endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Supplier B — Delhi Hotels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/supplierB/hotels?city=delhi",
+              "host": ["{{baseUrl}}"],
+              "path": ["supplierB", "hotels"],
+              "query": [{ "key": "city", "value": "delhi" }]
+            },
+            "description": "Directly call the Supplier B mock endpoint."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health — All Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Returns status of Supplier A, Supplier B, Redis, and Temporal. Returns 200 if all healthy, 503 if any service is degraded."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
